@@ -8,7 +8,7 @@ struct label
 	string name;
 	int pos;
 };
-
+char dict[16]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 label lab[2000];
 string mips[30]={"nop","add","addu","sub","subu","and","or","xor","nor",
 "sll","srl","sra","slt","jalr","jr","lw","sw","lui",
@@ -19,10 +19,10 @@ string reg [32]={"zero","at","v0","v1","a0","a1","a2","a3","t0","t1","t2","t3","
 "s0","s1","s2","s3","s4","s5","s6","s7","t8","t9","k0","k1","gp","sp","fp","ra",};
 
 ifstream mips_file("mips.txt",ios::in);
-ofstream code_file("code.txt",ios::out); 
+ofstream code_file("code.txt",ios::out),label_file("label.txt",ios::out); 
 fstream temp_file;
 string ins="",s="",ss="",rs="",rt="",rd="",funct="",shamt="",offset="",target="";
-int now=0;
+int now=0,ins_now=0;
 
 bool useful(char x)
 {
@@ -52,6 +52,19 @@ string change(string x)
 	return ans;
 };
 
+void change_num2(string x)
+{
+	int temp=0;
+	for (int i=0;i<8;++i)
+	{
+		temp=0;
+		for (int j=0;j<4;++j)
+		{temp<<=1;temp+=x[i*4+j]-48;};
+		code_file<<dict[temp];
+	};
+	code_file<<endl;
+};
+
 string change_num5(string x)
 {
 	int temp=0;
@@ -72,7 +85,7 @@ string change_num5(string x)
 string change_num16(string x)
 {
 	int sign;
-	if (x[0]='-') sign=1;else sign=0;
+	if (x[0]=='-') sign=1;else sign=0;
 	int temp=0;
 	for (int i=sign;i<x.length();++i)
 	{
@@ -107,8 +120,8 @@ string find_label(string s)
 		if (lab[i].name==s) 
 		{flag=lab[i].pos;break;};
 	string ans="0000000000000000";
-	if (flag=-1) {cout<<"Strange Label"<<s<<" at"<<now<<endl;return ans;};
-	int temp=flag-now-1,sign=0;
+	if (flag==-1) {cout<<"Strange Label"<<s<<" at"<<ins_now<<endl;return ans;};
+	int temp=flag-ins_now-1,sign=0;
 	if (temp<0) {sign=1;temp=-temp;};
 	for (int j=15;j>=0;--j)
 	{
@@ -136,8 +149,10 @@ string find_target(string s)
 	for (int i=0;i<label_num;++i)
 		if (lab[i].name==s) 
 		{flag=lab[i].pos;break;};
+	
 	string ans="00000000000000000000000000";
-	if (flag=-1) {cout<<"Strange Target"<<s<<" at"<<now<<endl;return ans;};
+	
+	if (flag==-1) {cout<<"Strange Target"<<s<<" at"<<ins_now<<endl;return ans;};
 	int temp=flag;
 	for (int j=25;j>=0;--j)
 	{
@@ -181,7 +196,7 @@ bool opr()
 	else if (ss=="slt") funct="101010";
 	else if (ss=="jalr") funct="001001";	
 	else if (ss=="jr") funct="001000";
-	else {cout<<"Unable to translate "<<now<<endl;return false;};
+	else {cout<<"Unable to translate "<<ins_now<<endl;return false;};
 	if ((ss=="sll")||(ss=="srl")||(ss=="sra"))
 	{
 		rs="00000";
@@ -329,8 +344,10 @@ bool opj()
 
 bool code()
 {
+	now=0;
 	s="";ss="";
-	while (useful(ins[now])) ss+=ins[now++];
+	while (!useful(ins[now])) ++now;
+	while (useful(ins[now])) {ss+=ins[now++];};
 	int op=find();
 	if (op==-1) return false;
 	if (op==0) 
@@ -355,10 +372,35 @@ bool code()
 
 bool empty()
 {
+	int flag=-1;
 	for (int i=0;i<ins.length();++i)
-		if (useful(ins[i])) return true;
-	return false;
+		if (ins[i]=='#')
+		{flag=i;break;};
+	if (flag!=-1)
+	{
+		ins.erase(flag,ins.length()-flag);
+	};
+	for (int i=0;i<ins.length();++i)
+		if (useful(ins[i])) return false;
+	return true;
 };
+
+void compare()
+{
+	string s1,s2;
+	ifstream file1("code.txt",ios::in);
+	ifstream file2("ans.txt",ios::in);
+	int tnow=-1;
+	while ((file1.peek()!=EOF)&&(file2.peek()!=EOF))
+	{
+		++tnow;
+		getline(file1,s1);
+		getline(file2,s2);
+		if (s1!=s2)
+		{cout<<tnow<<" "<<s1<<" "<<s2<<endl;};
+	};
+};
+
 
 int main()
 {
@@ -376,12 +418,18 @@ int main()
 				if (ins[i]==':') flag=i;
 			if (flag!=-1)
 			{
+				lab[label_num].name="";
 				for (int i=0;i<ins.length();++i)
+				{
 					if (useful(ins[i]))
-						{lab[label_num].name=ins.substr(i,flag);break;};
-				lab[label_num].name+='\0';
+						lab[label_num].name+=ins[i];
+					if (ins[i]==':')
+						break;
+				};
 				ins.erase(0,flag);
 				lab[label_num].pos=now;
+				label_file<<lab[label_num].name<<endl;
+				++label_num;
 			};
 			if (empty()) --now;
 			else
@@ -397,15 +445,15 @@ int main()
 	mips_file.close();
 	temp_file.close();
 	temp_file.open("temp.txt",ios::in);
-	now=-1;
+	ins_now=-1;
 	while (temp_file.peek()!=EOF)
 	{
-		++now;
+		++ins_now;
 		if(getline(temp_file,ins))
 		{
-			ins+=" ";
+			ins+=",";
 			if (code())
-			code_file<<s<<endl;
+				change_num2(s);
 		};
 	};
 	temp_file.close();

@@ -7,7 +7,7 @@ struct label
 {
 	string name;
 	int pos;
-};
+};//用于存储标签名和标签位置的结构体
 char dict[16]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 label lab[2000];
 string mips[30]={"nop","add","addu","sub","subu","and","or","xor","nor",
@@ -24,7 +24,7 @@ fstream temp_file;
 string ins="",s="",ss="",rs="",rt="",rd="",funct="",shamt="",offset="",target="";
 int now=0,ins_now=0;
 
-bool useful(char x)
+bool useful(char x)//判断此字符否是数字或字母或负号，用于提取指令名、寄存器名、立即数、标签
 {
 	if ((x>=48)&&(x<=57)) return true;
 	if ((x>=65)&&(x<=90)) return true;
@@ -33,7 +33,7 @@ bool useful(char x)
 	return false;
 };
 
-string change(string x)
+string change(string x)//将寄存器名转化为对应的五位二进制数
 {
 	string ans="00000";
 	for (int i=0;i<32;++i)
@@ -52,7 +52,7 @@ string change(string x)
 	return ans;
 };
 
-void change_num2(string x)
+void change_num2(string x)//将二进制机器码转化成十六进制数并输出到文件中
 {
 	int temp=0;
 	for (int i=0;i<8;++i)
@@ -65,7 +65,7 @@ void change_num2(string x)
 	code_file<<endl;
 };
 
-string change_num5(string x)
+string change_num5(string x)//将十进制数（字符串形式）转化为五位二进制数
 {
 	int temp=0;
 	for (int i=0;i<x.length();++i)
@@ -82,7 +82,7 @@ string change_num5(string x)
 	return ans;
 };
 
-string change_num16(string x)
+string change_num16(string x)//将十进制数（字符串形式）转化为十六位二进制数
 {
 	int sign;
 	if (x[0]=='-') sign=1;else sign=0;
@@ -113,7 +113,7 @@ string change_num16(string x)
 	return ans;
 };
 
-string find_label(string s)
+string find_label(string s)//找到标签s的位置并计算和当前位置的差后转化为二进制数
 {
 	int flag=-1;
 	for (int i=0;i<label_num;++i)
@@ -143,7 +143,7 @@ string find_label(string s)
 	return ans;
 };
 
-string find_target(string s)
+string find_target(string s)//找到标签位置并计算转化为二进制数
 {
 	int flag=-1;
 	for (int i=0;i<label_num;++i)
@@ -162,7 +162,7 @@ string find_target(string s)
 	return ans;
 };
 
-int find()
+int find()//确定一个指令属于哪一类型的指令，nop返回0，R型返回1，I型返回2，J型返回3，不合法返回-1
 {
 	for (int i=0;i<31;++i)
 	{
@@ -178,7 +178,7 @@ int find()
 
 };
 
-bool opr()
+bool opr()//处理R型指令
 {
 	for (int i=0;i<6;++i) s+="0";
 	funct="";rs="";rt="";rd="";shamt="00000";
@@ -244,7 +244,7 @@ bool opr()
 	return true;
 };
 
-bool opi()
+bool opi()//处理I型指令
 {
 	rs="";rt="";offset="";
 	if ((ss=="lw")||(ss=="sw"))
@@ -329,7 +329,7 @@ bool opi()
 	return false;
 };
 
-bool opj()
+bool opj()//处理J型指令
 {
 	target="";
 	if (ss=="j") s="000010";
@@ -342,7 +342,7 @@ bool opj()
 	
 };
 
-bool code()
+bool code()//提取指令名并判断指令类型，分类计算机器码
 {
 	now=0;
 	s="";ss="";
@@ -385,28 +385,12 @@ bool empty()
 	return true;
 };
 
-void compare()
-{
-	string s1,s2;
-	ifstream file1("code.txt",ios::in);
-	ifstream file2("ans.txt",ios::in);
-	int tnow=-1;
-	while ((file1.peek()!=EOF)&&(file2.peek()!=EOF))
-	{
-		++tnow;
-		getline(file1,s1);
-		getline(file2,s2);
-		if (s1!=s2)
-		{cout<<tnow<<" "<<s1<<" "<<s2<<endl;};
-	};
-};
-
-
 int main()
 {
 	now=-1;
 	int flag=-1;
 	temp_file.open("temp.txt",ios::out);
+	//遍历提取标签
 	while (mips_file.peek()!=EOF)
 	{
 		++now;
@@ -446,6 +430,7 @@ int main()
 	temp_file.close();
 	temp_file.open("temp.txt",ios::in);
 	ins_now=-1;
+	//计算并输出机器码
 	while (temp_file.peek()!=EOF)
 	{
 		++ins_now;
